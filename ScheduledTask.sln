@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31205.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ScheduledTask", "ScheduledTask\ScheduledTask.vcxproj", "{016A6EBB-EF65-46DD-B047-E743EF81696F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{016A6EBB-EF65-46DD-B047-E743EF81696F}.Debug|x64.ActiveCfg = Debug|x64
+		{016A6EBB-EF65-46DD-B047-E743EF81696F}.Debug|x64.Build.0 = Debug|x64
+		{016A6EBB-EF65-46DD-B047-E743EF81696F}.Debug|x86.ActiveCfg = Debug|Win32
+		{016A6EBB-EF65-46DD-B047-E743EF81696F}.Debug|x86.Build.0 = Debug|Win32
+		{016A6EBB-EF65-46DD-B047-E743EF81696F}.Release|x64.ActiveCfg = Release|x64
+		{016A6EBB-EF65-46DD-B047-E743EF81696F}.Release|x64.Build.0 = Release|x64
+		{016A6EBB-EF65-46DD-B047-E743EF81696F}.Release|x86.ActiveCfg = Release|Win32
+		{016A6EBB-EF65-46DD-B047-E743EF81696F}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {64B430B6-14E1-4596-8617-4B88BBAD1847}
+	EndGlobalSection
+EndGlobal
