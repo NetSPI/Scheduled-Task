@@ -3,19 +3,56 @@
 #define _WIN32_DCOM
 
 #include <windows.h>
+#include <Shlobj.h>
 #include <iostream>
-#include <stdio.h>
 #include <comdef.h>
-#include <wincred.h>
-//  Include the task header file.
 #include <taskschd.h>
 #include <string>
 #pragma comment(lib, "taskschd.lib")
-#pragma comment(lib, "comsupp.lib")
-#pragma comment(lib, "credui.lib")
 
-int main()
+std::wstring GetDefaultCommand();
+
+int wmain(int argc, wchar_t **argv)
 {
+    std::wstring cmd, arguments;
+    bool useSystem = false, deleteTask = false;
+    for(int i = 1; i < argc; i++)
+    {
+        std::wstring arg(argv[i]);
+        if(arg == L"/s")
+        {
+            useSystem = true;
+        }
+        else if(arg == L"/d")
+        {
+            deleteTask = true;
+        }
+        else if(arg == L"/c")
+        {
+            if(++i < argc)
+            {
+                cmd = std::wstring(argv[i]);
+            }
+            else
+            {
+                wprintf(L"Argument expected");
+                return 1;
+            }
+        }
+        else if(arg == L"/a")
+        {
+            if(++i < argc)
+            {
+                arguments = std::wstring(argv[i]);
+            }
+            else
+            {
+                wprintf(L"Argument expected");
+                return 1;
+            }
+        }
+    }
+
     //  Initialize COM.
     HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
     if (FAILED(hr))
@@ -45,19 +82,7 @@ int main()
 
     //  ------------------------------------------------------
     //  Create a name for the task.
-    LPCWSTR wszTaskName = L"AdSim Scheduled Task";
-
-    //  Get the windows directory and set the path to notepad.exe.
-    size_t requiredSize;
-    wchar_t* wstrExecutablePath;
-    _wgetenv_s(&requiredSize, NULL, 0, L"WINDIR");
-    wstrExecutablePath = (wchar_t*)malloc(requiredSize * sizeof(wchar_t));
-    _wgetenv_s(&requiredSize, wstrExecutablePath, requiredSize, L"WINDIR");
-
-    //wstrExecutablePath += L"\\SYSTEM32\\NOTEPAD.EXE";
-
-    std::wstring wstringExecutablePath(wstrExecutablePath);
-    wstringExecutablePath += std::wstring(L"\\SYSTEM32\\NOTEPAD.EXE");
+    LPCWSTR wszTaskName = L"netspi-native-exe-task";
 
     //  Create an instance of the Task Service. 
     ITaskService* pService = NULL;
@@ -92,7 +117,23 @@ int main()
     }
 
     //  If the same task exists, remove it.
-    pRootFolder->DeleteTask(_bstr_t(wszTaskName), 0);
+    hr = pRootFolder->DeleteTask(_bstr_t(wszTaskName), 0);
+
+    if(deleteTask)
+    {
+        pRootFolder->Release();
+        pService->Release();
+        CoUninitialize();
+
+        if(SUCCEEDED(hr))
+        {
+            printf("\n Success! Task successfully deleted.");
+            return 0;
+        }
+        
+        printf("Failed to delete task definition: %x", hr);
+        return 1;
+    }
 
     //  Create the task builder object to create the task.
     ITaskDefinition* pTask = NULL;
@@ -135,37 +176,40 @@ int main()
     ///
     ////////////////////////////////////////////////////////////////////////////////
 
-    //  Create the principal for the task
-    IPrincipal* pPrincipal = NULL;
-    hr = pTask->get_Principal(&pPrincipal);
-    if (FAILED(hr))
+    if(useSystem)
     {
-        printf("\nCannot get principal pointer: %x", hr);
-        pRootFolder->Release();
-        pTask->Release();
-        CoUninitialize();
-        return 1;
-    }
+        //  Create the principal for the task
+        IPrincipal* pPrincipal = NULL;
+        hr = pTask->get_Principal(&pPrincipal);
+        if (FAILED(hr))
+        {
+            printf("\nCannot get principal pointer: %x", hr);
+            pRootFolder->Release();
+            pTask->Release();
+            CoUninitialize();
+            return 1;
+        }
 
-    //  Set up principal information: 
-    hr = pPrincipal->put_Id(_bstr_t(L"SYSTEM"));
-    if (FAILED(hr))
-        printf("\nCannot put the principal ID: %x", hr);
+        //  Set up principal information: 
+        hr = pPrincipal->put_Id(_bstr_t(L"SYSTEM"));
+        if (FAILED(hr))
+            printf("\nCannot put the principal ID: %x", hr);
 
-    hr = pPrincipal->put_LogonType(TASK_LOGON_INTERACTIVE_TOKEN);
-    if (FAILED(hr))
-        printf("\nCannot put principal logon type: %x", hr);
+        hr = pPrincipal->put_LogonType(TASK_LOGON_INTERACTIVE_TOKEN);
+        if (FAILED(hr))
+            printf("\nCannot put principal logon type: %x", hr);
 
-    //  Run the task with the least privileges (LUA) 
-    hr = pPrincipal->put_RunLevel(TASK_RUNLEVEL_HIGHEST);
-    pPrincipal->Release();
-    if (FAILED(hr))
-    {
-        printf("\nCannot put principal run level: %x", hr);
-        pRootFolder->Release();
-        pTask->Release();
-        CoUninitialize();
-        return 1;
+        //  Run the task with the least privileges (LUA) 
+        hr = pPrincipal->put_RunLevel(TASK_RUNLEVEL_HIGHEST);
+        pPrincipal->Release();
+        if (FAILED(hr))
+        {
+            printf("\nCannot put principal run level: %x", hr);
+            pRootFolder->Release();
+            pTask->Release();
+            CoUninitialize();
+            return 1;
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -293,17 +337,38 @@ int main()
         return 1;
     }
 
-    //  Set the path of the executable to notepad.exe.
-    hr = pExecAction->put_Path(_bstr_t(wstringExecutablePath.c_str()));
-    pExecAction->Release();
+    //  Set the path of the executable.
+    if(cmd.empty())
+    {
+        cmd = GetDefaultCommand();
+    }
+
+    hr = pExecAction->put_Path(_bstr_t(cmd.c_str()));
     if (FAILED(hr))
     {
         printf("\nCannot add path for executable action: %x", hr);
+        pExecAction->Release();
         pRootFolder->Release();
         pTask->Release();
         CoUninitialize();
         return 1;
     }
+
+    if(!arguments.empty())
+    {
+        hr = pExecAction->put_Arguments(_bstr_t(arguments.c_str()));
+        if(FAILED(hr))
+        {
+            printf("\nCannot add arguments for executable action: %x", hr);
+            pExecAction->Release();
+            pRootFolder->Release();
+            pTask->Release();
+            CoUninitialize();
+            return 1;
+        }
+    }
+
+    pExecAction->Release();
 
     /*
     //  ------------------------------------------------------
@@ -371,25 +436,31 @@ int main()
         return 1;
     }
 
-    printf("\n Success! Task succesfully registered. ");
+    printf("\n Success! Task successfully registered. ");
 
     //  Clean up
     pRootFolder->Release();
     pTask->Release();
     pRegisteredTask->Release();
-    //SecureZeroMemory(pszName, sizeof(pszName));
-    //SecureZeroMemory(pszPwd, sizeof(pszPwd));
+
     CoUninitialize();
     return 0;
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
+std::wstring GetDefaultCommand()
+{
+    PWSTR pSystemPath = nullptr;
+    HRESULT hr = SHGetKnownFolderPath(FOLDERID_System, 0, NULL, &pSystemPath);
+    if(FAILED(hr))
+    {
+        wprintf(L"\nUnable to get system directory: %x", hr);
+        return std::wstring();
+    }
 
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+    std::wstring wstringExecutablePath(pSystemPath);
+    wstringExecutablePath += std::wstring(L"\\NOTEPAD.EXE");
+
+    CoTaskMemFree(pSystemPath);
+
+    return wstringExecutablePath;
+}
