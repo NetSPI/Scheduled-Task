@@ -16,6 +16,9 @@ Native Binary for Creating a Scheduled Task
 ## Create As Current User
 * ScheduleTask.exe "" #Empty Single or Double Quotes to create a null string
 
+## Create a Scheduled Task on a Remote System
+* ScheduleTask.exe SYSTEM TargetSystem
+
 For the Visual C++ redistributable, include the following DLL's.
 * msvcp140d.dll
 * vcruntime140d.dll
