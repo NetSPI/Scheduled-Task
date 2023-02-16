@@ -23,8 +23,25 @@ int main(int argc, char* argv[])
         return 1;
     }
     
-    printf("Creating a task as %s", argv[1]);
+    printf("Creating a task as %s\r\n", argv[1]);
 
+    _variant_t varComputerName = new variant_t();
+    if (3 == argc)
+    {
+        printf("Executing scheduled task on remote system %s\r\n", argv[2]);
+
+        std::string strComputername = argv[2];
+        int wstrSize = MultiByteToWideChar(CP_UTF8, 0, strComputername.c_str(), -1, nullptr, 0);
+        wchar_t* wcComputername = new wchar_t[wstrSize];
+        MultiByteToWideChar(CP_UTF8, 0, strComputername.c_str(), -1, wcComputername, wstrSize);
+        _bstr_t bstrComputerName(wcComputername);
+        varComputerName = new variant_t(bstrComputerName);
+        delete[] wcComputername;
+
+        return 1;
+    }
+
+    
 
     //  Initialize COM.
     HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
@@ -80,7 +97,7 @@ int main(int argc, char* argv[])
     }
 
     //  Connect to the task service.
-    hr = pService->Connect(_variant_t(), _variant_t(), _variant_t(), _variant_t());
+    hr = pService->Connect(varComputerName, _variant_t(), _variant_t(), _variant_t());
     if (FAILED(hr))
     {
         printf("ITaskService::Connect failed: %x", hr);
