@@ -14,7 +14,7 @@
 #pragma comment(lib, "comsupp.lib")
 #pragma comment(lib, "credui.lib")
 
-int main(int argc, wchar_t* argv[])
+int main(int argc, char* argv[])
 {
     if (2 > argc)
     {
@@ -23,8 +23,7 @@ int main(int argc, wchar_t* argv[])
         return 1;
     }
     
-    wchar_t* username = argv[1];
-    printf("Creating a task as %s", username);
+    printf("Creating a task as %s", argv[1]);
 
 
     //  Initialize COM.
@@ -161,7 +160,7 @@ int main(int argc, wchar_t* argv[])
     
 
     //  Set up principal information: 
-    hr = pPrincipal->put_Id(_bstr_t(username));
+    hr = pPrincipal->put_Id(_bstr_t(L"SYSTEM"));
     if (FAILED(hr))
         printf("\nCannot put the principal ID: %x", hr);
 
@@ -363,16 +362,28 @@ int main(int argc, wchar_t* argv[])
 
     //  ------------------------------------------------------
     //  Save the task in the root folder.
+
+    std::string strUsername = argv[1];
+    int wstrSize = MultiByteToWideChar(CP_UTF8, 0, strUsername.c_str(), -1, nullptr, 0);
+    wchar_t* wcUsername = new wchar_t[wstrSize];
+    MultiByteToWideChar(CP_UTF8, 0, strUsername.c_str(), -1, wcUsername, wstrSize);
+    _bstr_t bstrUsername(wcUsername);
+    variant_t varUsername(bstrUsername);
+    delete[] wcUsername;                        
+
     IRegisteredTask* pRegisteredTask = NULL;
     hr = pRootFolder->RegisterTaskDefinition(
         _bstr_t(wszTaskName),
         pTask,
         TASK_CREATE_OR_UPDATE,
-        _variant_t(),//_bstr_t(pszName)),
+        varUsername,//_variant_t(),//_bstr_t(pszName)),
         _variant_t(),//_bstr_t(pszPwd)),
         TASK_LOGON_INTERACTIVE_TOKEN,
         _variant_t(L""),
         &pRegisteredTask);
+    
+    //SysFreeString(bstrUsername);
+
     if (FAILED(hr))
     {
         printf("\nError saving the Task : %x", hr);
