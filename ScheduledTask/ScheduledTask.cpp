@@ -14,8 +14,19 @@
 #pragma comment(lib, "comsupp.lib")
 #pragma comment(lib, "credui.lib")
 
-int main()
+int main(int argc, wchar_t* argv[])
 {
+    if (2 > argc)
+    {
+        printf("Username to execute as was not specified");
+
+        return 1;
+    }
+    
+    wchar_t* username = argv[1];
+    printf("Creating a task as %s", username);
+
+
     //  Initialize COM.
     HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
     if (FAILED(hr))
@@ -147,8 +158,10 @@ int main()
         return 1;
     }
 
+    
+
     //  Set up principal information: 
-    hr = pPrincipal->put_Id(_bstr_t(L"SYSTEM"));
+    hr = pPrincipal->put_Id(_bstr_t(username));
     if (FAILED(hr))
         printf("\nCannot put the principal ID: %x", hr);
 
